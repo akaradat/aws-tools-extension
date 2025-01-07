@@ -2,14 +2,14 @@ type Mapping = {
   [key: string]: string;
 };
 
-type CloudWatchInfo = {
+export type CloudWatchInfo = {
   region: string;
   logName: string;
   streamName?: string;
   query?: CloudWatchQuery;
 };
 
-type CloudWatchQuery = {
+export type CloudWatchQuery = {
   start?: number;
   end?: number;
   filterPattern?: string;
@@ -64,13 +64,13 @@ export function getLogNameFromApiGatewayId(apiId: string, stage: string) {
 function createQueryString(query: CloudWatchQuery): string {
   const parts = [];
 
-  if (query.start !== undefined) {
+  if (query.start) {
     parts.push(`start=${query.start}`);
   }
-  if (query.end !== undefined) {
+  if (query.end) {
     parts.push(`end=${query.end}`);
   }
-  if (query.filterPattern !== undefined) {
+  if (query.filterPattern) {
     const filterPattern = query.filterPattern.replace(/ /g, '+');
     parts.push(`filterPattern=${filterPattern}`);
   }
@@ -79,7 +79,7 @@ function createQueryString(query: CloudWatchQuery): string {
   return queryString ? `?${queryString}` : '';
 }
 
-export function isCloudWatchUrl(url: string): boolean {
+export function checkIsCloudWatchUrl(url: string): boolean {
   return url.includes('console.aws.amazon.com/cloudwatch/home');
 }
 

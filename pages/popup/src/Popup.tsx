@@ -1,78 +1,116 @@
 import '@src/Popup.css';
-import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
-import { exampleThemeStorage } from '@extension/storage';
-import type { ComponentPropsWithoutRef } from 'react';
-
-const notificationOptions = {
-  type: 'basic',
-  iconUrl: chrome.runtime.getURL('icon-34.png'),
-  title: 'Injecting content script error',
-  message: 'You cannot inject script here!',
-} as const;
+import React, { useEffect, useState } from 'react';
+import type { CloudWatchInfo } from '@extension/shared';
+import {
+  getCloudWatchInfoFromUrl,
+  getLogNameFromLambdaFunctionName,
+  getUrlFromCloudWatchInfo,
+  withErrorBoundary,
+  withSuspense,
+} from '@extension/shared';
 
 const Popup = () => {
-  const theme = useStorage(exampleThemeStorage);
-  const isLight = theme === 'light';
-  const logo = isLight ? 'popup/logo_vertical.svg' : 'popup/logo_vertical_dark.svg';
-  const goGithubSite = () =>
-    chrome.tabs.create({ url: 'https://github.com/Jonghakseo/chrome-extension-boilerplate-react-vite' });
+  const [isContainFilter, setIsContainFilter] = useState(false);
+  const [cloudWatchInfo, setCloudWatchInfo] = useState<CloudWatchInfo | null>(null);
 
-  const injectContentScript = async () => {
-    const [tab] = await chrome.tabs.query({ currentWindow: true, active: true });
+  useEffect(() => {
+    chrome.tabs &&
+      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        if (tabs.length > 0 && tabs[0].url) {
+          const currentUrl = tabs[0].url;
+          const isCloudWatchUrl = getCloudWatchInfoFromUrl(currentUrl);
 
-    if (tab.url!.startsWith('about:') || tab.url!.startsWith('chrome:')) {
-      chrome.notifications.create('inject-error', notificationOptions);
-    }
+          if (!isCloudWatchUrl) {
+            setIsContainFilter(false);
+            return;
+          }
 
-    await chrome.scripting
-      .executeScript({
-        target: { tabId: tab.id! },
-        files: ['/content-runtime/index.iife.js'],
-      })
-      .catch(err => {
-        // Handling errors related to other paths
-        if (err.message.includes('Cannot access a chrome:// URL')) {
-          chrome.notifications.create('inject-error', notificationOptions);
+          const info = getCloudWatchInfoFromUrl(currentUrl);
+          console.log(info);
+          console.log(info.query?.start || info.query?.end || info.query?.filterPattern);
+          setCloudWatchInfo(info);
+
+          if (info.query?.start || info.query?.end || info.query?.filterPattern) {
+            setIsContainFilter(true);
+            return;
+          }
+
+          setIsContainFilter(false);
         }
       });
+
+    document.getElementById('lambda_function_name')?.focus();
+  }, []);
+
+  const onClickOpen = (isWithFilter: boolean = false) => {
+    return (e: React.SyntheticEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+
+      const elem = document.getElementById('lambda_function_name') as HTMLInputElement;
+
+      const lambdaFunctionName = elem.value;
+      if (!lambdaFunctionName) {
+        return;
+      }
+
+      const logName = getLogNameFromLambdaFunctionName(lambdaFunctionName);
+
+      const options: CloudWatchInfo = {
+        region: cloudWatchInfo?.region || 'ap-southeast-1',
+        logName,
+      };
+
+      if (isWithFilter) {
+        options.query = {
+          start: cloudWatchInfo?.query?.start,
+          end: cloudWatchInfo?.query?.end,
+          // not support filterPattern for now. will be added in the future after have setting
+          // filterPattern: cloudWatchInfo?.query?.filterPattern,
+        };
+      }
+
+      const newUrl = getUrlFromCloudWatchInfo(options);
+      chrome.tabs.create({ url: newUrl });
+    };
   };
 
   return (
-    <div className={`App ${isLight ? 'bg-slate-50' : 'bg-gray-800'}`}>
-      <header className={`App-header ${isLight ? 'text-gray-900' : 'text-gray-100'}`}>
-        <button onClick={goGithubSite}>
-          <img src={chrome.runtime.getURL(logo)} className="App-logo" alt="logo" />
-        </button>
-        <p>
-          Edit <code>pages/popup/src/Popup.tsx</code>
-        </p>
-        <button
-          className={
-            'font-bold mt-4 py-1 px-4 rounded shadow hover:scale-105 ' +
-            (isLight ? 'bg-blue-200 text-black' : 'bg-gray-700 text-white')
-          }
-          onClick={injectContentScript}>
-          Click to inject Content Script
-        </button>
-        <ToggleButton>Toggle theme</ToggleButton>
-      </header>
+    <div className="w-96 max-w-md border-2 border-black bg-white p-4">
+      <h3 className="text-2xl font-semibold leading-none tracking-tight">CloudWatch Log Opener</h3>
+      <div className="mt-4">
+        <form>
+          <label htmlFor="lambda_function_name" className="mb-2 block text-sm font-medium ">
+            Lambda Function name
+          </label>
+          <input
+            type="text"
+            id="lambda_function_name"
+            className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm"
+            placeholder="function-name"
+            autoComplete="off"
+            required
+          />
+          <button
+            type="submit"
+            name="action"
+            value="normal"
+            onClick={onClickOpen(false)}
+            className="mt-4 w-full rounded border border-orange-500 px-4 py-2 font-bold text-orange-500 hover:bg-orange-700 hover:text-white">
+            Open
+          </button>
+          {isContainFilter && (
+            <button
+              type="submit"
+              name="action"
+              value="with_filter"
+              onClick={onClickOpen(true)}
+              className="mt-2 w-full rounded bg-orange-500 px-4 py-2 font-bold text-white hover:bg-orange-700">
+              Open With Filter
+            </button>
+          )}
+        </form>
+      </div>
     </div>
-  );
-};
-
-const ToggleButton = (props: ComponentPropsWithoutRef<'button'>) => {
-  const theme = useStorage(exampleThemeStorage);
-  return (
-    <button
-      className={
-        props.className +
-        ' ' +
-        'font-bold mt-4 py-1 px-4 rounded shadow hover:scale-105 ' +
-        (theme === 'light' ? 'bg-white text-black shadow-black' : 'bg-black text-white')
-      }
-      onClick={exampleThemeStorage.toggle}>
-      {props.children}
-    </button>
   );
 };
 
