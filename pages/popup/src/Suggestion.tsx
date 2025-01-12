@@ -2,8 +2,9 @@ import '@src/Suggestion.css';
 import React, { useState } from 'react';
 import type { ChangeEvent, SuggestionSelectedEventData, SuggestionsFetchRequestedParams } from 'react-autosuggest';
 import Autosuggest from 'react-autosuggest';
-import type { CloudwatchLogItem } from '@extension/shared';
-import { withErrorBoundary, withSuspense } from '@extension/shared';
+import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
+import type { CloudwatchLogItem } from '@extension/storage';
+import { cloudwatchItemStorage } from '@extension/storage';
 
 // const impr = {
 //   action: 'import:cloudwatch',
@@ -20,32 +21,13 @@ import { withErrorBoundary, withSuspense } from '@extension/shared';
 //   ],
 // };
 
-const logList: CloudwatchLogItem[] = [
-  {
-    name: 'SNS create statement',
-    lambda: 'tcrb-ob-statement-createStatement',
-  },
-  {
-    lambda: 'tcrb-mb-biz-transfer-TransferRequestFunction',
-  },
-  {
-    lambda: 'tcrb-mb-biz-authen-ExistsQRFunction',
-    api: '/v1/authen/ekyc/signup-status',
-  },
-  {
-    gatewayName: 'biz-backend',
-    gatewayId: 'a4db3j',
-    stage: 'api',
-  },
-];
-
-const getSuggestions = (value: string): CloudwatchLogItem[] => {
+const getSuggestions = (list: CloudwatchLogItem[], value: string): CloudwatchLogItem[] => {
   const inputValue = value.trim().toLowerCase();
   const inputLength = inputValue.length;
 
   return inputLength === 0
     ? []
-    : logList.filter(log => {
+    : list.filter(log => {
         if ('name' in log && !!log.name && log.name.includes(inputValue)) {
           return true;
         }
@@ -101,34 +83,38 @@ const renderSuggestion = (suggestion: CloudwatchLogItem) => {
   );
 };
 
+const getSuggestionValue = (suggestion: CloudwatchLogItem) => {
+  if ('name' in suggestion && !!suggestion.name) {
+    return suggestion.name;
+  }
+
+  if ('api' in suggestion && !!suggestion.api) {
+    return suggestion.api;
+  }
+
+  if ('lambda' in suggestion && !!suggestion.lambda) {
+    return suggestion.lambda;
+  }
+
+  if ('gatewayId' in suggestion && !!suggestion.gatewayId) {
+    return suggestion.gatewayName;
+  }
+
+  return '';
+};
+
 export type OnValueChangeType = (value: CloudwatchLogItem | string) => void;
 
 const Suggestion = ({ onValueChange }: { onValueChange: OnValueChangeType }) => {
+  const logList = useStorage(cloudwatchItemStorage);
+
+  console.log('logList', logList);
+
   const [suggestions, setSuggestions] = useState<CloudwatchLogItem[]>([]);
   const [value, setValue] = useState('');
 
-  const getSuggestionValue = (suggestion: CloudwatchLogItem) => {
-    if ('name' in suggestion && !!suggestion.name) {
-      return suggestion.name;
-    }
-
-    if ('api' in suggestion && !!suggestion.api) {
-      return suggestion.api;
-    }
-
-    if ('lambda' in suggestion && !!suggestion.lambda) {
-      return suggestion.lambda;
-    }
-
-    if ('gatewayId' in suggestion && !!suggestion.gatewayId) {
-      return suggestion.gatewayName;
-    }
-
-    return '';
-  };
-
   const onSuggestionsFetchRequested = ({ value }: SuggestionsFetchRequestedParams) => {
-    setSuggestions(getSuggestions(value));
+    setSuggestions(getSuggestions(logList, value));
   };
 
   const onSuggestionsClearRequested = () => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { CloudWatchInfo, CloudwatchLogItem } from '@extension/shared';
+import type { CloudWatchInfo } from '@extension/shared';
 import {
   getCloudWatchInfoFromUrl,
   getLogNameFromApiGatewayId,
@@ -8,6 +8,7 @@ import {
   withErrorBoundary,
   withSuspense,
 } from '@extension/shared';
+import type { CloudwatchLogItem } from '@extension/storage';
 import type { OnValueChangeType } from './Suggestion';
 import Suggestion from './Suggestion';
 
