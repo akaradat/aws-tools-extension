@@ -1,15 +1,18 @@
-import '@src/Popup.css';
 import React, { useEffect, useState } from 'react';
-import type { CloudWatchInfo } from '@extension/shared';
+import type { CloudWatchInfo, CloudwatchLogItem } from '@extension/shared';
 import {
   getCloudWatchInfoFromUrl,
+  getLogNameFromApiGatewayId,
   getLogNameFromLambdaFunctionName,
   getUrlFromCloudWatchInfo,
   withErrorBoundary,
   withSuspense,
 } from '@extension/shared';
+import type { OnValueChangeType } from './Suggestion';
+import Suggestion from './Suggestion';
 
 const Popup = () => {
+  const [searchValue, setSearchValue] = useState<CloudwatchLogItem | string>('');
   const [isContainFilter, setIsContainFilter] = useState(false);
   const [cloudWatchInfo, setCloudWatchInfo] = useState<CloudWatchInfo | null>(null);
 
@@ -46,14 +49,25 @@ const Popup = () => {
     return (e: React.SyntheticEvent<HTMLButtonElement>) => {
       e.preventDefault();
 
-      const elem = document.getElementById('lambda_function_name') as HTMLInputElement;
-
-      const lambdaFunctionName = elem.value;
-      if (!lambdaFunctionName) {
-        return;
+      let searchLogName = '';
+      let logType = 'lambda';
+      const info: { [key: string]: string } = {};
+      if (typeof searchValue === 'string') {
+        searchLogName = searchValue;
+      } else if ('lambda' in searchValue && !!searchValue.lambda) {
+        searchLogName = searchValue.lambda;
+      } else if ('gatewayId' in searchValue && !!searchValue.gatewayId) {
+        searchLogName = searchValue.gatewayId;
+        logType = 'api-gateway';
+        info.stage = searchValue.stage;
       }
 
-      const logName = getLogNameFromLambdaFunctionName(lambdaFunctionName);
+      let logName = searchLogName;
+      if (logType === 'lambda') {
+        logName = getLogNameFromLambdaFunctionName(searchLogName);
+      } else if (logType === 'api-gateway') {
+        logName = getLogNameFromApiGatewayId(searchLogName, info.stage);
+      }
 
       const options: CloudWatchInfo = {
         region: cloudWatchInfo?.region || 'ap-southeast-1',
@@ -74,22 +88,20 @@ const Popup = () => {
     };
   };
 
+  const onValueChange: OnValueChangeType = value => {
+    setSearchValue(value);
+  };
+
   return (
-    <div className="w-96 max-w-md border-2 border-black bg-white p-4">
+    // eslint-disable-next-line tailwindcss/no-custom-classname
+    <div className="w-128 max-w-md bg-white p-4">
       <h3 className="text-2xl font-semibold leading-none tracking-tight">CloudWatch Log Opener</h3>
       <div className="mt-4">
         <form>
           <label htmlFor="lambda_function_name" className="mb-2 block text-sm font-medium ">
             Lambda Function name
           </label>
-          <input
-            type="text"
-            id="lambda_function_name"
-            className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm"
-            placeholder="function-name"
-            autoComplete="off"
-            required
-          />
+          <Suggestion onValueChange={onValueChange} />
           <button
             type="submit"
             name="action"

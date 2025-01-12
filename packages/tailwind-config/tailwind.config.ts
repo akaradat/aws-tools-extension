@@ -2,7 +2,11 @@ import type { Config } from 'tailwindcss/types/config';
 
 export default {
   theme: {
-    extend: {},
+    extend: {
+      width: {
+        '128': '32rem',
+      },
+    },
   },
   plugins: [],
 } as Omit<Config, 'content'>;

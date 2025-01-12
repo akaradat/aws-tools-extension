@@ -57,7 +57,7 @@ export function getLogNameFromLambdaFunctionName(functionName: string) {
   return `/aws/lambda/${functionName}`;
 }
 
-export function getLogNameFromApiGatewayId(apiId: string, stage: string) {
+export function getLogNameFromApiGatewayId(apiId: string, stage: string = 'api') {
   return `API-Gateway-Execution-Logs_${apiId}/${stage}`;
 }
 
