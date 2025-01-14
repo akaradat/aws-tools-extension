@@ -1,25 +1,10 @@
 import '@src/Suggestion.css';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { ChangeEvent, SuggestionSelectedEventData, SuggestionsFetchRequestedParams } from 'react-autosuggest';
 import Autosuggest from 'react-autosuggest';
 import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
 import type { CloudwatchLogItem } from '@extension/storage';
 import { cloudwatchItemStorage } from '@extension/storage';
-
-// const impr = {
-//   action: 'import:cloudwatch',
-//   data: [
-//     {
-//       lambda: 'tcrb-mb-biz-authen-ExistsQRFunction',
-//       api: '/v1/authen/ekyc/signup-status',
-//     },
-//     {
-//       gatewayName: 'biz-backend',
-//       gatewayId: 'a4db3j',
-//       stage: 'api',
-//     },
-//   ],
-// };
 
 const getSuggestions = (list: CloudwatchLogItem[], value: string): CloudwatchLogItem[] => {
   const inputValue = value.trim().toLowerCase();
@@ -106,9 +91,11 @@ const getSuggestionValue = (suggestion: CloudwatchLogItem) => {
 export type OnValueChangeType = (value: CloudwatchLogItem | string) => void;
 
 const Suggestion = ({ onValueChange }: { onValueChange: OnValueChangeType }) => {
-  const logList = useStorage(cloudwatchItemStorage);
+  useEffect(() => {
+    document.getElementById('lambda_function_name')?.focus();
+  }, []);
 
-  console.log('logList', logList);
+  const logList = useStorage(cloudwatchItemStorage);
 
   const [suggestions, setSuggestions] = useState<CloudwatchLogItem[]>([]);
   const [value, setValue] = useState('');

@@ -95,7 +95,7 @@ const Popup = () => {
 
   return (
     // eslint-disable-next-line tailwindcss/no-custom-classname
-    <div className="w-128 max-w-md bg-white p-4">
+    <div className="w-128 h-128 max-w-md bg-white p-4">
       <h3 className="text-2xl font-semibold leading-none tracking-tight">CloudWatch Log Opener</h3>
       <div className="mt-4">
         <form>

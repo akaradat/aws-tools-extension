@@ -1,0 +1,4 @@
+{
+  "command": "cloudwatch:import:clear",
+  "data": []
+}

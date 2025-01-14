@@ -6,6 +6,9 @@ export default {
       width: {
         '128': '32rem',
       },
+      height: {
+        '128': '32rem',
+      },
     },
   },
   plugins: [],

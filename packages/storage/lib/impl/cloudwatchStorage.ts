@@ -21,8 +21,7 @@ export type CloudwatchLogGatewayItem = {
 export type CloudwatchLogItem = CloudwatchLogLambdaItem | CloudwatchLogApiItem | CloudwatchLogGatewayItem;
 
 type CloudwatchItemStorage = BaseStorage<CloudwatchLogItem[]> & {
-  add: (item: CloudwatchLogItem) => Promise<void>;
-  init: () => Promise<void>;
+  add: (items: CloudwatchLogItem[]) => Promise<void>;
   clear: () => Promise<void>;
 };
 
@@ -33,33 +32,8 @@ const storage = createStorage<CloudwatchLogItem[]>('cloudwatch-item', [], {
 
 export const cloudwatchItemStorage: CloudwatchItemStorage = {
   ...storage,
-  add: async (item: CloudwatchLogItem) => {
-    await storage.set(items => [...items, item]);
-  },
-  init: async () => {
-    await storage.set([
-      {
-        name: 'SNS create statement',
-        lambda: 'tcrb-ob-statement-createStatement',
-      },
-      {
-        lambda: 'tcrb-mb-biz-transfer-TransferRequestFunction',
-      },
-      {
-        lambda: 'tcrb-mb-biz-authen-ExistsQRFunction',
-        api: '/v1/authen/ekyc/signup-status',
-      },
-      {
-        gatewayName: 'mb-biz-backend',
-        gatewayId: 'a4db3j',
-        stage: 'api',
-      },
-      {
-        gatewayName: 'mb-backend',
-        gatewayId: 'jklf8g2',
-        stage: 'api',
-      },
-    ]);
+  add: async (newItems: CloudwatchLogItem[]) => {
+    await storage.set(items => [...items, ...newItems]);
   },
   clear: async () => {
     await storage.set([]);
