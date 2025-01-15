@@ -6,30 +6,36 @@ import { useStorage, withErrorBoundary, withSuspense } from '@extension/shared';
 import type { CloudwatchLogItem } from '@extension/storage';
 import { cloudwatchItemStorage } from '@extension/storage';
 
+const escapeRegex = (x: string): string => {
+  return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
 const getSuggestions = (list: CloudwatchLogItem[], value: string): CloudwatchLogItem[] => {
+  const searchRgx = new RegExp([...value.trim().toLowerCase()].map(escapeRegex).join('.*'), 'i');
+
   const inputValue = value.trim().toLowerCase();
   const inputLength = inputValue.length;
 
   return inputLength === 0
     ? []
     : list.filter(log => {
-        if ('name' in log && !!log.name && log.name.includes(inputValue)) {
+        if ('name' in log && !!log.name && searchRgx.test(log.name.toLowerCase())) {
           return true;
         }
 
-        if ('lambda' in log && !!log.lambda && log.lambda.includes(inputValue)) {
+        if ('lambda' in log && !!log.lambda && searchRgx.test(log.lambda.toLowerCase())) {
           return true;
         }
 
-        if ('api' in log && !!log.api && log.api.includes(inputValue)) {
+        if ('api' in log && !!log.api && searchRgx.test(log.api.toLowerCase())) {
           return true;
         }
 
-        if ('gatewayName' in log && !!log.gatewayName && log.gatewayName.includes(inputValue)) {
+        if ('gatewayName' in log && !!log.gatewayName && searchRgx.test(log.gatewayName.toLowerCase())) {
           return true;
         }
 
-        if ('gatewayId' in log && !!log.gatewayId && log.gatewayId.includes(inputValue)) {
+        if ('gatewayId' in log && !!log.gatewayId && searchRgx.test(log.gatewayId.toLowerCase())) {
           return true;
         }
 
